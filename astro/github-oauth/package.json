@@ -6,13 +6,16 @@
 		"dev": "astro dev",
 		"start": "astro dev",
 		"build": "astro check && astro build",
-		"preview": "astro preview",
-		"astro": "astro"
+		"preview": "astro build && wrangler pages dev",
+		"astro": "astro",
+		"deploy": "astro build && wrangler pages deploy",
+		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
 		"@astrojs/check": "^0.3.4",
+		"@astrojs/cloudflare": "^11.0.4",
 		"@astrojs/node": "^8.0.0",
-		"@lucia-auth/adapter-sqlite": "^3.0.0",
+		"@lucia-auth/adapter-sqlite": "^3.0.2",
 		"arctic": "^0.10.2",
 		"astro": "^4.0.7",
 		"better-sqlite3": "^9.2.2",
@@ -20,6 +23,8 @@
 		"typescript": "^5.3.3"
 	},
 	"devDependencies": {
-		"@types/better-sqlite3": "^7.6.8"
+		"@cloudflare/workers-types": "^4.20240806.0",
+		"@types/better-sqlite3": "^7.6.8",
+		"miniflare": "^3.20240806.0"
 	}
 }

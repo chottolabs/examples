@@ -1,8 +1,10 @@
-import { lucia } from "./lib/auth";
+import { initializeLucia } from "./lib/auth";
 import { verifyRequestOrigin } from "lucia";
 import { defineMiddleware } from "astro:middleware";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+	const { D1 } = context.locals.runtime.env;
+	const lucia = initializeLucia(D1)
 	if (context.request.method !== "GET") {
 		const originHeader = context.request.headers.get("Origin");
 		const hostHeader = context.request.headers.get("Host");

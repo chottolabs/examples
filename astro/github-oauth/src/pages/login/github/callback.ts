@@ -1,10 +1,10 @@
-import { github, lucia } from "../../../lib/auth";
+import { initializeLucia } from "../../../lib/auth";
 import { OAuth2RequestError } from "arctic";
-import { db } from "../../../lib/db";
 import { generateId } from "lucia";
 
 import type { APIContext } from "astro";
 import type { DatabaseUser } from "../../../lib/db";
+import { GitHub } from "arctic";
 
 export async function GET(context: APIContext): Promise<Response> {
 	const code = context.url.searchParams.get("code");
@@ -17,14 +17,21 @@ export async function GET(context: APIContext): Promise<Response> {
 	}
 
 	try {
+		const { D1, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } = context.locals.runtime.env;
+		const lucia = initializeLucia(D1)
+		const github = new GitHub(
+			GITHUB_CLIENT_ID,
+			GITHUB_CLIENT_SECRET,
+		);
 		const tokens = await github.validateAuthorizationCode(code);
 		const githubUserResponse = await fetch("https://api.github.com/user", {
 			headers: {
-				Authorization: `Bearer ${tokens.accessToken}`
+				'User-Agent': context.request.headers.get('user-agent') ?? "",
+				Authorization: `Bearer ${tokens.accessToken}`,
 			}
 		});
 		const githubUser: GitHubUser = await githubUserResponse.json();
-		const existingUser = db.prepare("SELECT * FROM user WHERE github_id = ?").get(githubUser.id) as
+		const existingUser = await D1.prepare("SELECT * FROM user WHERE github_id = ?").bind(githubUser.id).first() as
 			| DatabaseUser
 			| undefined;
 
@@ -36,11 +43,11 @@ export async function GET(context: APIContext): Promise<Response> {
 		}
 
 		const userId = generateId(15);
-		db.prepare("INSERT INTO user (id, github_id, username) VALUES (?, ?, ?)").run(
+		await D1.prepare("INSERT INTO user (id, github_id, username) VALUES (?, ?, ?)").bind(
 			userId,
 			githubUser.id,
 			githubUser.login
-		);
+		).run();
 		const session = await lucia.createSession(userId, {});
 		const sessionCookie = lucia.createSessionCookie(session.id);
 		context.cookies.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);

@@ -1,37 +1,34 @@
 import { Lucia } from "lucia";
-import { BetterSqlite3Adapter } from "@lucia-auth/adapter-sqlite";
-import { db } from "./db";
 import { GitHub } from "arctic";
 
 import type { DatabaseUser } from "./db";
+import { D1Adapter } from "@lucia-auth/adapter-sqlite";
 
-const adapter = new BetterSqlite3Adapter(db, {
-	user: "user",
-	session: "session"
-});
-
-export const lucia = new Lucia(adapter, {
-	sessionCookie: {
-		attributes: {
-			secure: import.meta.env.PROD
+export function initializeLucia(D1: D1Database) {
+	const adapter = new D1Adapter(D1, {
+		user: "user",
+		session: "session"
+	});
+	console.log(import.meta.env)
+	return new Lucia(adapter, {
+		sessionCookie: {
+			attributes: {
+				// set to `true` when using HTTPS
+				secure: false // import.meta.env.PROD
+			}
+		},
+		getUserAttributes: (attributes) => {
+			return {
+				githubId: attributes.github_id,
+				username: attributes.username
+			};
 		}
-	},
-	getUserAttributes: (attributes) => {
-		return {
-			username: attributes.username,
-			githubId: attributes.github_id
-		};
-	}
-});
+	});
+}
 
 declare module "lucia" {
 	interface Register {
-		Lucia: typeof lucia;
+		Lucia: ReturnType<typeof initializeLucia>;
 		DatabaseUserAttributes: Omit<DatabaseUser, "id">;
 	}
 }
-
-export const github = new GitHub(
-	import.meta.env.GITHUB_CLIENT_ID,
-	import.meta.env.GITHUB_CLIENT_SECRET
-);
